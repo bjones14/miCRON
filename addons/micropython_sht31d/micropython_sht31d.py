@@ -26,7 +26,10 @@
 
 This is a MicroPython driver for the SHT31-D temperature and humidity sensor.
 
-* Author(s): Jerry Needell, Llewelyn Trahaearn
+This source was forked from the Adafruit_CircuitPython_SHT31D library: https://github.com/adafruit/Adafruit_CircuitPython_SHT31D
+The original authors are Jerry Needell and Llewelyn Trahaearn and are listed in the license above.
+
+* Author(s): Brandon Jones
 
 Implementation Notes
 --------------------
@@ -37,6 +40,8 @@ Implementation Notes
   <https://www.adafruit.com/product/2857>`_ (Product ID: 2857)
 
 **Software and Dependencies:**
+
+* micropython
 
 """
 
@@ -50,8 +55,8 @@ import time
 
 from micropython import const
 
-__version__ = "0.0.0-auto.0"
-__repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_SHT31D.git"
+__version__ = "1.0.0-auto.0"
+__repo__ = "https://github.com/bjones14/MicroPython_SHT31D.git"
 
 
 _SHT31_DEFAULT_ADDRESS = const(0x44)
