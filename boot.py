@@ -1,10 +1,9 @@
-import json
 import time
-from umqttsimple import MQTTClient
+
 import micropython_sht31d
 import config
-import helpers
-import schedule
+import micron
+#import schedule
 import ubinascii
 import machine
 import micropython
@@ -20,14 +19,9 @@ cfg = load_config()
 
 client_id = ubinascii.hexlify(machine.unique_id())
 
-'''
-topic_sub = b'notification'
-topic_pub = b'hello'
-
 last_message = 0
 message_interval = 5
 counter = 0
-'''
 
 station = network.WLAN(network.STA_IF)
 

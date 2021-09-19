@@ -2,6 +2,10 @@
 Helper functions used by various parts of the application.
 
 '''
+import json
+from umqttsimple import MQTTClient
+
+
 def load_config(file_path: str = 'config.json') -> config:
   """
   This method will load the JSON configuration file and create all of the scheduler objects
@@ -16,8 +20,9 @@ def load_config(file_path: str = 'config.json') -> config:
       cfg: A config object that contains all of the loaded configuration.
   """
   with open(file_path) as file: 
-    json_dict = json.loads(file)
-    cfg = config(json_dict)
+    file_str = file.read()
+    json_dict = json.loads(file_str)
+    cfg = config.config(json_dict)
 
   return cfg
 
@@ -36,16 +41,16 @@ def mqtt_subscribe_cb(topic: str, msg: str):
 
 
 def mqtt_connect_and_subscribe(cfg: config):
-
-  global client_id, mqtt_server, topic_sub
-  client = MQTTClient(client_id, mqtt_server)
-  client.set_callback(sub_cb)
+  global client_id
+  topic_sub = 'hello'
+  client = MQTTClient(client_id, cfg.mqtt_server)
+  client.set_callback(mqtt_subscribe_cb)
   client.connect()
   client.subscribe(topic_sub)
-  print('Connected to %s MQTT broker, subscribed to %s topic' % (mqtt_server, topic_sub))
+  print('Connected to %s MQTT broker, subscribed to %s topic' % (cfg.mqtt_server, topic_sub))
   return client
-
-def restart_and_reconnect():
+  
+def mqtt_restart_and_reconnect():
   print('Failed to connect to MQTT broker. Reconnecting...')
   time.sleep(10)
   machine.reset()

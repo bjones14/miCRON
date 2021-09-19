@@ -3,11 +3,12 @@
 TODO: license info and other application-level info here
 
 '''
+global cfg
 
 try:
-  client = connect_and_subscribe()
+  client = mqtt_connect_and_subscribe(cfg)
 except OSError as e:
-  restart_and_reconnect()
+  mqtt_restart_and_reconnect(cfg)
 
 while True:
   try:
@@ -18,4 +19,5 @@ while True:
       last_message = time.time()
       counter += 1
   except OSError as e:
-    restart_and_reconnect()
+    mqtt_restart_and_reconnect()
+
