@@ -14,10 +14,9 @@ while True:
   try:
     client.check_msg()
     if (time.time() - last_message) > message_interval:
-      msg = b'Hello #%d' % counter
-      client.publish(topic_pub, msg)
+      msg = b'%d' % time.time()
+      client.publish('micron/watchdog', msg)
       last_message = time.time()
-      counter += 1
   except OSError as e:
     mqtt_restart_and_reconnect()
 

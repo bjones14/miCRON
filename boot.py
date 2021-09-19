@@ -16,12 +16,11 @@ gc.collect()
 
 # Loads the JSON configuration into a config object.
 cfg = load_config()
-
 client_id = ubinascii.hexlify(machine.unique_id())
+
 
 last_message = 0
 message_interval = 5
-counter = 0
 
 station = network.WLAN(network.STA_IF)
 
