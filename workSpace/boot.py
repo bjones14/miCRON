@@ -50,3 +50,4 @@ print('Local time after NTP synchronization and timezone correction: {0}'.format
 
 # Initialize the watchdog timer
 wdt = WDT(timeout=int(cfg._watchdog_timeout_ms))
+
