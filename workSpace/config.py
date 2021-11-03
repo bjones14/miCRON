@@ -20,6 +20,8 @@ class config:
         self._mqtt_server = json_dict['_mqtt_server']
         self._mqtt_user = json_dict['_mqtt_user']
         self._mqtt_pass = json_dict['_mqtt_pass']
+        self._timezone_utc_offset = json_dict['_timezone_utc_offset']
+        self._watchdog_timeout_ms = json_dict['_watchdog_timeout_ms']
 
     @property
     def wifi_ssid(self):
@@ -43,3 +45,4 @@ class config:
 
     def toJSON(self):
         return self.__dict__
+

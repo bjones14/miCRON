@@ -1,1 +1,10 @@
-{}
+{
+"_wifi_ssid" : "Waldon_2G",
+"_wifi_pass" : "N34tur3!",
+"_mqtt_server" : "192.168.42.2",
+"_mqtt_user" : "",
+"_mqtt_pass" : "",
+"_timezone_utc_offset" : "-4",
+"_watchdog_timeout_ms" : "5000"
+}
+
