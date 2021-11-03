@@ -401,3 +401,4 @@ class SHT31D:
         self.i2c.readfrom_into(self.address, data)
         word = _unpack(data)
         return (word[0] << 16) | word[1]
+
