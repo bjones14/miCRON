@@ -10,8 +10,9 @@ global rtc
 global wdt
 global client_id
 
+from micropython import const
 import micropython_sht31d
-import micropython_pcd8544
+from micron_pcd8544 import micron_PCD8544
 from machine import SPI
 
 data = {}
@@ -44,12 +45,14 @@ async def sht30d_loop(client, i2c, secondary_offset_degc = -0.471698):
     data['vpd_kpa'] = vpd_kpa
     
     # Publish values to MQTT
+    '''
     client.publish('esp32/sht30d/primary_temp_degf', str(primary_temp_degf))
     client.publish('esp32/sht30d/secondary_temp_degf', str(secondary_temp_degf))
     client.publish('esp32/sht30d/primary_temp_degc', str(primary_temp_degc))
     client.publish('esp32/sht30d/secondary_temp_degc', str(secondary_temp_degc))
     client.publish('esp32/sht30d/relative_humidity', str(rh))
     client.publish('esp32/sht30d/vpd_kpa', str(vpd_kpa))
+    '''
     
     # TODO
     #
@@ -67,9 +70,15 @@ async def system_loop(client):
     client.publish('esp32/sys/ram_available_bytes', str(gc.mem_free()))
     await uasyncio.sleep_ms(1000)
 
+
+'''
+TODO 
+make a better driver for the display - a combination of adafruit and the current implementation
+want something more simple/streamlined without neededing to do a ton of extra work outside of the
+driver itself
+'''
 async def display_loop():
-  spi = SPI(1)
-  spi.init(baudrate=2000000, polarity=0, phase=0)
+  
   cs = Pin(22)
   dc = Pin(23)
   rst = Pin(21)
@@ -77,20 +86,35 @@ async def display_loop():
   # backlight on
   bl = Pin(5, Pin.OUT, value=1)
   
-  lcd = micropython_pcd8544.PCD8544(spi, cs, dc, rst)
-  buffer = bytearray((micropython_pcd8544.HEIGHT // 8) * micropython_pcd8544.WIDTH)
-  fbuf = framebuf.FrameBuffer(buffer, micropython_pcd8544.WIDTH, micropython_pcd8544.HEIGHT, framebuf.MONO_VLSB)
-
-  # wait some time for data to be populated
-  await uasyncio.sleep_ms(5000)
+  lcd = micron_PCD8544(spi, cs, dc, rst)
+  buffer = bytearray((const(0x30) // 8) * const(0x54))
+  fbuf = framebuf.FrameBuffer(buffer, const(0x54), const(0x30), framebuf.MONO_VLSB)
   
   while True:
+    await uasyncio.sleep_ms(1000)
     fbuf.fill(0)
+
+    '''
     fbuf.text('T-{:.2f} F'.format(data['primary_temp_degf']), 0, 0, 1)
     fbuf.text('H-{:.2f} %'.format(data['relative_humidity']), 0, 20, 1)
     fbuf.text('V-{:.2f} kPa'.format(data['vpd_kpa']), 0, 40, 1)
-    lcd.data(buffer)
-    await uasyncio.sleep_ms(1000)
+    '''
+    
+    '''
+    (year, month, day, weekday, hours, minutes, seconds, subseconds) = rtc.datetime()
+    fbuf.text('Y: {0}'.format(year), 0, 0, 1)
+    fbuf.text('M: {0}'.format(month), 0, 10, 1)
+    fbuf.text('D: {0}'.format(day), 0, 20, 1)
+    fbuf.text('{0}:{1}:{2}.{3}'.format(hours, minutes, seconds, subseconds), 0, 30, 1)
+    '''
+
+    fbuf.text('Used RAM', 0, 0, 1)
+    fbuf.text('{0}'.format(gc.mem_alloc()), 0, 10, 1)
+    fbuf.text('Free RAM', 0, 20, 1)
+    fbuf.text('{0}'.format(gc.mem_free()), 0, 30, 1)
+
+    lcd.text_action.run(buffer)
+   
 
 '''
 TODO documentation on watchdog_loop
@@ -100,24 +124,51 @@ async def watchdog_loop():
     wdt.feed()
     await uasyncio.sleep_ms(1000)
 
+
+'''
+TODO documentation on automation loop
+
+'''
+async def automation_loop(automation):
+  # pass in an automation object which contains the information about it
+  # define a loop rate indicated by frequency_in_ms
+  # at the defined rate run the check through value and hysteresis
+  # if the trigger is done then run the defined action (only update value if state change)
+  pass
+
+
+# TODO run a loop per configured automation
+# TODO scale out SHT30Ds to multiple loops
+
 '''
 TODO documentation on main function
 '''
 async def main(client, i2c):
   await uasyncio.gather(
     sht30d_loop(client, i2c),
-    system_loop(client),
+    #system_loop(client),
     watchdog_loop(),
     display_loop(),
   )
   
-print('Initializing and scanning I2C bus...')
-
+print('Initializing and scanning I2C_BUS_0...')
 i2c = I2C(0)
 print(i2c.scan())
 
+spi_baud = 2000000
+print ('Initializing SPI_BUS_1 with baudrate of {0}...'.format(spi_baud))
+spi = SPI(1)
+spi.init(baudrate=spi_baud, polarity=0, phase=0)
+
+'''
 client = MQTTClient(client_id, cfg.mqtt_server)
 client.connect()
 print('Connected to %s MQTT broker' % (cfg.mqtt_server))
+'''
+client = None
 
-uasyncio.run(main(client, i2c))
+loop = uasyncio.get_event_loop()
+loop.run_until_complete(main(client, i2c))
+
+#uasyncio.run(main(client, i2c))
+
