@@ -16,6 +16,7 @@ from micron_pcd8544 import micron_PCD8544
 from machine import SPI
 
 data = {}
+display_index = 0
 
 '''
 TODO
@@ -94,24 +95,23 @@ async def display_loop():
     await uasyncio.sleep_ms(1000)
     fbuf.fill(0)
 
-    '''
-    fbuf.text('T-{:.2f} F'.format(data['primary_temp_degf']), 0, 0, 1)
-    fbuf.text('H-{:.2f} %'.format(data['relative_humidity']), 0, 20, 1)
-    fbuf.text('V-{:.2f} kPa'.format(data['vpd_kpa']), 0, 40, 1)
-    '''
-    
-    '''
-    (year, month, day, weekday, hours, minutes, seconds, subseconds) = rtc.datetime()
-    fbuf.text('Y: {0}'.format(year), 0, 0, 1)
-    fbuf.text('M: {0}'.format(month), 0, 10, 1)
-    fbuf.text('D: {0}'.format(day), 0, 20, 1)
-    fbuf.text('{0}:{1}:{2}.{3}'.format(hours, minutes, seconds, subseconds), 0, 30, 1)
-    '''
-
-    fbuf.text('Used RAM', 0, 0, 1)
-    fbuf.text('{0}'.format(gc.mem_alloc()), 0, 10, 1)
-    fbuf.text('Free RAM', 0, 20, 1)
-    fbuf.text('{0}'.format(gc.mem_free()), 0, 30, 1)
+    if display_index == 0:
+      fbuf.text('T-{:.2f} F'.format(data['primary_temp_degf']), 0, 0, 1)
+      fbuf.text('H-{:.2f} %'.format(data['relative_humidity']), 0, 20, 1)
+      fbuf.text('V-{:.2f} kPa'.format(data['vpd_kpa']), 0, 40, 1)
+    elif display_index == 1:
+      (year, month, day, weekday, hours, minutes, seconds, subseconds) = rtc.datetime()
+      fbuf.text('Y: {0}'.format(year), 0, 0, 1)
+      fbuf.text('M: {0}'.format(month), 0, 10, 1)
+      fbuf.text('D: {0}'.format(day), 0, 20, 1)
+      fbuf.text('{0}:{1}:{2}.{3}'.format(hours, minutes, seconds, subseconds), 0, 30, 1)
+    elif display_index == 2:
+      fbuf.text('Used RAM', 0, 0, 1)
+      fbuf.text('{0}'.format(gc.mem_alloc()), 0, 10, 1)
+      fbuf.text('Free RAM', 0, 20, 1)
+      fbuf.text('{0}'.format(gc.mem_free()), 0, 30, 1)
+    else:
+      display_index = 0
 
     lcd.text_action.run(buffer)
    
@@ -137,6 +137,13 @@ async def automation_loop(automation):
   pass
 
 
+def button_handler(pin):
+  global display_index
+
+  display_index += 1
+
+
+
 # TODO run a loop per configured automation
 # TODO scale out SHT30Ds to multiple loops
 
@@ -150,7 +157,7 @@ async def main(client, i2c):
     watchdog_loop(),
     display_loop(),
   )
-  
+
 print('Initializing and scanning I2C_BUS_0...')
 i2c = I2C(0)
 print(i2c.scan())
@@ -166,6 +173,10 @@ client.connect()
 print('Connected to %s MQTT broker' % (cfg.mqtt_server))
 '''
 client = None
+
+# setup interrupts
+button = Pin(26, Pin.IN, pull=Pin.PULL_DOWN)
+button.irq(handler=button_handler)
 
 loop = uasyncio.get_event_loop()
 loop.run_until_complete(main(client, i2c))

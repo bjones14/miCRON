@@ -54,6 +54,4 @@ rtc.init((year, month, day, weekday, (hours + int(cfg._timezone_utc_offset)), mi
 print('Local time after NTP synchronization and timezone correction: {0}'.format(str(rtc.datetime())))
 
 # Initialize the watchdog timer
-#wdt = WDT(timeout=int(cfg._watchdog_timeout_ms))
-
-
+wdt = WDT(timeout=int(cfg._watchdog_timeout_ms))
