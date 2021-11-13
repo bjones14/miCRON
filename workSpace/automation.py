@@ -30,8 +30,16 @@ one of the conditions are true will dictate which action to take
 '''
 class automation:
 
-    def __init__(self, rate_ms, conditions, actions):
-        pass
+    def __init__(self, rate_ms: int, conditions, actions):
+        self._rate_ms = rate_ms
+        self._conditions = conditions
+        self._actions = actions
 
-    def run(self):
-        pass
+    async def run(self):
+        uasyncio.sleep(self._rate_ms)
+
+        condition = True
+        
+        if condition:
+          for action in self._actions:
+            action.run()

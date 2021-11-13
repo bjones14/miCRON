@@ -10,6 +10,9 @@ global rtc
 global wdt
 global client_id
 
+import automation
+import action 
+
 from micropython import const
 import micropython_sht31d
 from micron_pcd8544 import micron_PCD8544
@@ -78,42 +81,52 @@ make a better driver for the display - a combination of adafruit and the current
 want something more simple/streamlined without neededing to do a ton of extra work outside of the
 driver itself
 '''
-async def display_loop():
+async def display_loop(spi):
   
   cs = Pin(22)
   dc = Pin(23)
   rst = Pin(21)
   
-  # backlight on
+  # backlight PWM
   bl = Pin(5, Pin.OUT, value=1)
+  bl_pwm = machine.PWM(bl)
+  bl_pwm.freq(500)
+
+  duty_cycle = 512
+  bl_pwm.duty(duty_cycle)
   
   lcd = micron_PCD8544(spi, cs, dc, rst)
   buffer = bytearray((const(0x30) // 8) * const(0x54))
   fbuf = framebuf.FrameBuffer(buffer, const(0x54), const(0x30), framebuf.MONO_VLSB)
   
+  display_index = 0
+
   while True:
     await uasyncio.sleep_ms(1000)
     fbuf.fill(0)
 
-    if display_index == 0:
+    #duty_cycle = (duty_cycle + 100) % 1024
+    #bl_pwm.duty(duty_cycle)
+  
+    if 0 <= display_index < 1:
       fbuf.text('T-{:.2f} F'.format(data['primary_temp_degf']), 0, 0, 1)
       fbuf.text('H-{:.2f} %'.format(data['relative_humidity']), 0, 20, 1)
       fbuf.text('V-{:.2f} kPa'.format(data['vpd_kpa']), 0, 40, 1)
-    elif display_index == 1:
+    elif 1 <= display_index < 2:
       (year, month, day, weekday, hours, minutes, seconds, subseconds) = rtc.datetime()
       fbuf.text('Y: {0}'.format(year), 0, 0, 1)
       fbuf.text('M: {0}'.format(month), 0, 10, 1)
       fbuf.text('D: {0}'.format(day), 0, 20, 1)
       fbuf.text('{0}:{1}:{2}.{3}'.format(hours, minutes, seconds, subseconds), 0, 30, 1)
-    elif display_index == 2:
+    elif 2 <= display_index < 3:
       fbuf.text('Used RAM', 0, 0, 1)
       fbuf.text('{0}'.format(gc.mem_alloc()), 0, 10, 1)
       fbuf.text('Free RAM', 0, 20, 1)
       fbuf.text('{0}'.format(gc.mem_free()), 0, 30, 1)
-    else:
-      display_index = 0
 
     lcd.text_action.run(buffer)
+
+    display_index = (display_index + 0.2) % 3
    
 
 '''
@@ -134,28 +147,20 @@ async def automation_loop(automation):
   # define a loop rate indicated by frequency_in_ms
   # at the defined rate run the check through value and hysteresis
   # if the trigger is done then run the defined action (only update value if state change)
-  pass
-
-
-def button_handler(pin):
-  global display_index
-
-  display_index += 1
-
-
-
-# TODO run a loop per configured automation
-# TODO scale out SHT30Ds to multiple loops
+  await automation.run()
 
 '''
 TODO documentation on main function
 '''
-async def main(client, i2c):
+async def main(client, i2c, spi):
+  # create automations
+  display_automation = automation(1000, )
   await uasyncio.gather(
     sht30d_loop(client, i2c),
     #system_loop(client),
     watchdog_loop(),
-    display_loop(),
+    display_loop(spi),
+    #automation_loop(display_automation)
   )
 
 print('Initializing and scanning I2C_BUS_0...')
@@ -175,11 +180,11 @@ print('Connected to %s MQTT broker' % (cfg.mqtt_server))
 client = None
 
 # setup interrupts
-button = Pin(26, Pin.IN, pull=Pin.PULL_DOWN)
-button.irq(handler=button_handler)
+# button = Pin(26, Pin.IN, pull=Pin.PULL_DOWN)
+# button.irq(handler=button_handler)
 
 loop = uasyncio.get_event_loop()
-loop.run_until_complete(main(client, i2c))
+loop.run_until_complete(main(client, i2c, spi))
 
 #uasyncio.run(main(client, i2c))
 
