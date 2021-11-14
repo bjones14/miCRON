@@ -1,5 +1,3 @@
-# This file is executed on every boot (including wake-boot from deepsleep)
-
 import uasyncio
 import os
 import json
@@ -16,7 +14,7 @@ import esp32
 import gc
 import webrepl
 import machine
-from machine import Pin, I2C, RTC, WDT
+from machine import Pin, RTC, WDT
 
 _CONFIG_FILE = 'config.json'
 
@@ -55,3 +53,5 @@ print('Local time after NTP synchronization and timezone correction: {0}'.format
 
 # Initialize the watchdog timer
 wdt = WDT(timeout=int(cfg._watchdog_timeout_ms))
+
+

@@ -4,6 +4,8 @@ REPL starts after both boot.py and main.py have finished. An endless loop in boo
 
 TODO: license info and other application-level info here
 
+DS18B20 Temperature Sensor - 1 wire interface
+
 '''
 global cfg
 global rtc
@@ -15,11 +17,36 @@ import action
 
 from micropython import const
 import micropython_sht31d
+import onewire
+import ds18x20
 from micron_pcd8544 import micron_PCD8544
-from machine import SPI
+from machine import SPI, I2C, UART
+
+
+# 
+i2c_dev_info = {
+    "0x29" : "TSL2591 Light/Lux Sensor",
+    "0x39" : "AS72341 10ch Spectrometer",
+    "0x44" : "SHT30D Temp and Humidity Sensor",
+    "0x58" : "SGP30 TVOC and eCO2 Sensor",
+    "0x5f" : "HTS221 Temp and Humidity Sensor"
+}
 
 data = {}
-display_index = 0
+
+'''
+
+
+'''
+async def ds18x20_loop(pin):
+    ds = ds18x20.DS18X20(ow)
+    roms = ds.scan()
+    while True:
+        ds.convert_temp()
+        await uasyncio.sleep_ms(1000)
+        for rom in roms:
+            #print(ds.read_temp(rom))
+            pass
 
 '''
 TODO
@@ -137,10 +164,24 @@ async def watchdog_loop():
     wdt.feed()
     await uasyncio.sleep_ms(1000)
 
+'''
+
+
+# this can be used to duplicate the REPL and act upon it
+#uos.dupterm(stream_object)
+
+
+async def repl_loop():
+  uart0 = UART(0, baudrate=115200, tx=1, rx=3)
+  stdin = uasyncio.StreamReader(uart0)
+  while True:
+    msg = await stdin.readline()
+    print('echo:{0}'.format(msg))
+'''
+    
 
 '''
 TODO documentation on automation loop
-
 '''
 async def automation_loop(automation):
   # pass in an automation object which contains the information about it
@@ -149,28 +190,43 @@ async def automation_loop(automation):
   # if the trigger is done then run the defined action (only update value if state change)
   await automation.run()
 
+
 '''
-TODO documentation on main function
+TODO documentation on main functio
 '''
-async def main(client, i2c, spi):
+async def main(client, i2c, spi, ow):
   # create automations
-  display_automation = automation(1000, )
+  #display_automation = automation(1000, )
+
   await uasyncio.gather(
     sht30d_loop(client, i2c),
     #system_loop(client),
     watchdog_loop(),
     display_loop(spi),
+    ds18x20_loop(ow),
+    #repl_loop(),
     #automation_loop(display_automation)
   )
 
 print('Initializing and scanning I2C_BUS_0...')
 i2c = I2C(0)
-print(i2c.scan())
+devices = i2c.scan()
+for device in devices:
+    id = hex(device)
+    if id in i2c_dev_info:
+        print('I2C Device found: ID {0} - {1}'.format(id, i2c_dev_info[id]))
+    else:
+        print('I2C Device found: ID {0} - {1}'.format(id, 'Unknown'))
 
 spi_baud = 2000000
 print ('Initializing SPI_BUS_1 with baudrate of {0}...'.format(spi_baud))
 spi = SPI(1)
 spi.init(baudrate=spi_baud, polarity=0, phase=0)
+
+print('Initializing and scanning OneWire bus...')
+ow = onewire.OneWire(Pin(27))
+print(ow.scan())
+ow.reset()
 
 '''
 client = MQTTClient(client_id, cfg.mqtt_server)
@@ -183,8 +239,6 @@ client = None
 # button = Pin(26, Pin.IN, pull=Pin.PULL_DOWN)
 # button.irq(handler=button_handler)
 
-loop = uasyncio.get_event_loop()
-loop.run_until_complete(main(client, i2c, spi))
+uasyncio.run(main(client, i2c, spi, ow))
 
-#uasyncio.run(main(client, i2c))
 
