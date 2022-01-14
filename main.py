@@ -198,10 +198,11 @@ async def main(client, i2c, spi, ow):
   # create automations
   #display_automation = automation(1000, )
 
+
   await uasyncio.gather(
     sht30d_loop(client, i2c),
     #system_loop(client),
-    watchdog_loop(),
+    #watchdog_loop(),
     display_loop(spi),
     ds18x20_loop(ow),
     #repl_loop(),
