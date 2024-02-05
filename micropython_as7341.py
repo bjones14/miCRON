@@ -39,9 +39,11 @@ import time
 from micropython import const
 from machine import I2C
 
+'''
 from adafruit_register.i2c_struct import UnaryStruct, Struct  # , ROUnaryStruct
 from adafruit_register.i2c_bit import RWBit
 from adafruit_register.i2c_bits import ROBits, RWBits
+'''
 
 _AS7341_DEVICE_ID = const(0b001001)  # Correct content of WHO_AM_I register
 _AS7341_I2CADDR_DEFAULT = const(0x39)  # AS7341 default i2c address
@@ -397,13 +399,10 @@ class AS7341:  # pylint:disable=too-many-instance-attributes, no-member
                 raise RuntimeError("Timeout occurred waiting for sensor data")
             sleep(0.001)
 
-    def _write_register(self, addr, data):
-
-        self._buffer[0] = addr
-        self._buffer[1] = data
-
+    def _write_register(self, memaddr, data):
+        addrsize = data.len
         with self.i2c as i2c:
-            i2c.writeto(self.address, self._buffer)
+            i2c.writeto_mem(self.address, memaddr, data)
 
     def _configure_f1_f4(self):
         """Configure the sensor to read from elements F1-F4, Clear, and NIR"""

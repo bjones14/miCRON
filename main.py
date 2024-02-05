@@ -20,8 +20,11 @@ import micropython_sht31d
 import onewire
 import ds18x20
 from micron_pcd8544 import micron_PCD8544
-from machine import SPI, I2C, UART
+from machine import SoftSPI, SPI, I2C, UART, WDT
 
+
+# Initialize the watchdog timer
+wdt = WDT(timeout=int(cfg._watchdog_timeout_ms))
 
 # 
 i2c_dev_info = {
@@ -108,14 +111,14 @@ make a better driver for the display - a combination of adafruit and the current
 want something more simple/streamlined without neededing to do a ton of extra work outside of the
 driver itself
 '''
-async def display_loop(spi):
+async def display_loop(spi, cs_pin=22, dc_pin=23, rst_pin=21, bl_pin=5):
   
-  cs = Pin(22)
-  dc = Pin(23)
-  rst = Pin(21)
+  cs = Pin(cs_pin)
+  dc = Pin(dc_pin)
+  rst = Pin(rst_pin)
   
   # backlight PWM
-  bl = Pin(5, Pin.OUT, value=1)
+  bl = Pin(bl_pin, Pin.OUT, value=1)
   bl_pwm = machine.PWM(bl)
   bl_pwm.freq(500)
 
@@ -160,6 +163,7 @@ async def display_loop(spi):
 TODO documentation on watchdog_loop
 '''
 async def watchdog_loop():
+  global wdt
   while True:
     wdt.feed()
     await uasyncio.sleep_ms(1000)
@@ -194,17 +198,17 @@ async def automation_loop(automation):
 '''
 TODO documentation on main functio
 '''
-async def main(client, i2c, spi, ow):
+async def main(client, i2c, spi):
   # create automations
   #display_automation = automation(1000, )
 
 
   await uasyncio.gather(
-    sht30d_loop(client, i2c),
+    #sht30d_loop(client, i2c),
     #system_loop(client),
-    #watchdog_loop(),
+    watchdog_loop(),
     display_loop(spi),
-    ds18x20_loop(ow),
+    #ds18x20_loop(ow),
     #repl_loop(),
     #automation_loop(display_automation)
   )
@@ -221,13 +225,15 @@ for device in devices:
 
 spi_baud = 2000000
 print ('Initializing SPI_BUS_1 with baudrate of {0}...'.format(spi_baud))
-spi = SPI(1)
-spi.init(baudrate=spi_baud, polarity=0, phase=0)
+spi = SoftSPI(baudrate=spi_baud, polarity=0, phase=0, sck=Pin(22), mosi=Pin(21), miso=Pin(23))
+spi.init(baudrate=spi_baud)
 
+'''
 print('Initializing and scanning OneWire bus...')
 ow = onewire.OneWire(Pin(27))
 print(ow.scan())
 ow.reset()
+'''
 
 '''
 client = MQTTClient(client_id, cfg.mqtt_server)
@@ -240,6 +246,7 @@ client = None
 # button = Pin(26, Pin.IN, pull=Pin.PULL_DOWN)
 # button.irq(handler=button_handler)
 
-uasyncio.run(main(client, i2c, spi, ow))
+uasyncio.run(main(client, i2c, spi))
+
 
 
